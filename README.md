@@ -1,4 +1,4 @@
-# Mac Diff Tool
+# Diff Tool
 
 A simple, browser-based diff tool. No installation required - just open and use.
 
