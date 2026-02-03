@@ -4,7 +4,7 @@ A simple, browser-based diff tool. No installation required - just open and use.
 
 ## Quick Start
 
-- Simply double-click `diff.html` to open it in your default browser
+- Simply double-click `index.html` to open it in your default browser
 
 
 ## Usage
@@ -32,21 +32,6 @@ A simple, browser-based diff tool. No installation required - just open and use.
 - Any modern web browser (Safari, Chrome, Firefox)
 - No internet connection required
 - No additional tools or dependencies
-
-## Optional: Create a Desktop Mac App
-
-To make it feel more like a native app, you can create a simple wrapper:
-
-1. Open **Automator** (search in Spotlight)
-2. Choose **Application**
-3. Search for "Run Shell Script" and drag it to the workflow
-4. Paste this command (update the path):
-   ```bash
-   open /Users/YOUR_USERNAME/Non_Work/Projects/mac-diff-tool/diff.html
-   ```
-5. Save as "Diff Tool" to your Applications folder
-
-Now you can launch it from Spotlight like any other app.
 
 ## License
 
