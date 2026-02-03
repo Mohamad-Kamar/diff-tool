@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mac Diff Tool</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f5f5f7;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        h1 {
+            font-size: 24px;
+            font-weight: 600;
+            color: #1d1d1f;
+        }
+
+        .buttons {
+            display: flex;
+            gap: 10px;
+        }
+
+        button {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background: #007aff;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #0056b3;
+        }
+
+        .btn-secondary {
+            background: #e5e5e7;
+            color: #1d1d1f;
+        }
+
+        .btn-secondary:hover {
+            background: #d1d1d6;
+        }
+
+        .input-section {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .input-panel {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .panel-header {
+            padding: 12px 16px;
+            background: #fafafa;
+            border-bottom: 1px solid #e5e5e7;
+            font-weight: 500;
+            color: #1d1d1f;
+        }
+
+        textarea {
+            width: 100%;
+            height: 200px;
+            border: none;
+            padding: 16px;
+            font-family: 'SF Mono', Monaco, 'Courier New', monospace;
+            font-size: 13px;
+            line-height: 1.5;
+            resize: vertical;
+            outline: none;
+        }
+
+        textarea:focus {
+            background: #fafafa;
+        }
+
+        .stats {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 20px;
+            padding: 12px 16px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        .stat {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+        }
+
+        .stat-removed {
+            color: #d73a49;
+        }
+
+        .stat-added {
+            color: #22863a;
+        }
+
+        .diff-section {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .diff-panel {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .diff-header {
+            padding: 12px 16px;
+            background: #fafafa;
+            border-bottom: 1px solid #e5e5e7;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .diff-title {
+            font-weight: 500;
+            color: #1d1d1f;
+        }
+
+        .diff-content {
+            padding: 0;
+            font-family: 'SF Mono', Monaco, 'Courier New', monospace;
+            font-size: 13px;
+            line-height: 1.6;
+            max-height: 500px;
+            overflow: auto;
+        }
+
+        .diff-line {
+            display: flex;
+            padding: 2px 0;
+        }
+
+        .line-number {
+            min-width: 40px;
+            padding: 0 8px;
+            text-align: right;
+            color: #8e8e93;
+            background: #fafafa;
+            border-right: 1px solid #e5e5e7;
+            user-select: none;
+        }
+
+        .line-content {
+            padding: 0 12px;
+            white-space: pre-wrap;
+            word-break: break-all;
+            flex: 1;
+        }
+
+        .line-removed {
+            background: #ffeef0;
+        }
+
+        .line-removed .line-content {
+            color: #d73a49;
+        }
+
+        .line-added {
+            background: #e6ffed;
+        }
+
+        .line-added .line-content {
+            color: #22863a;
+        }
+
+        .line-unchanged {
+            background: white;
+        }
+
+        .highlight-removed {
+            background: #fdb8c0;
+            border-radius: 2px;
+        }
+
+        .highlight-added {
+            background: #acf2bd;
+            border-radius: 2px;
+        }
+
+        .empty-state {
+            padding: 40px;
+            text-align: center;
+            color: #8e8e93;
+        }
+
+        @media (max-width: 800px) {
+            .input-section, .diff-section {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Diff Tool</h1>
+            <div class="buttons">
+                <button class="btn-secondary" onclick="clearAll()">Clear</button>
+                <button class="btn-secondary" onclick="swapTexts()">Swap</button>
+                <button class="btn-primary" onclick="findDiff()">Find Difference</button>
+            </div>
+        </header>
+
+        <div class="input-section">
+            <div class="input-panel">
+                <div class="panel-header">Original Text</div>
+                <textarea id="text1" placeholder="Paste or type the original text here..."></textarea>
+            </div>
+            <div class="input-panel">
+                <div class="panel-header">Changed Text</div>
+                <textarea id="text2" placeholder="Paste or type the changed text here..."></textarea>
+            </div>
+        </div>
+
+        <div class="stats" id="stats" style="display: none;">
+            <div class="stat stat-removed">
+                <span>−</span>
+                <span id="removedCount">0</span> removals
+            </div>
+            <div class="stat stat-added">
+                <span>+</span>
+                <span id="addedCount">0</span> additions
+            </div>
+        </div>
+
+        <div class="diff-section" id="diffSection" style="display: none;">
+            <div class="diff-panel">
+                <div class="diff-header">
+                    <span class="diff-title">Original</span>
+                </div>
+                <div class="diff-content" id="diff1"></div>
+            </div>
+            <div class="diff-panel">
+                <div class="diff-header">
+                    <span class="diff-title">Changed</span>
+                </div>
+                <div class="diff-content" id="diff2"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Compute LCS table for two arrays
+        function computeLCS(arr1, arr2) {
+            const m = arr1.length;
+            const n = arr2.length;
+            const dp = Array(m + 1).fill(null).map(() => Array(n + 1).fill(0));
+
+            for (let i = 1; i <= m; i++) {
+                for (let j = 1; j <= n; j++) {
+                    if (arr1[i - 1] === arr2[j - 1]) {
+                        dp[i][j] = dp[i - 1][j - 1] + 1;
+                    } else {
+                        dp[i][j] = Math.max(dp[i - 1][j], dp[i][j - 1]);
+                    }
+                }
+            }
+            return dp;
+        }
+
+        // Get character-level diff between two strings
+        function getCharDiff(str1, str2) {
+            const chars1 = str1.split('');
+            const chars2 = str2.split('');
+            const dp = computeLCS(chars1, chars2);
+
+            const result = [];
+            let i = chars1.length;
+            let j = chars2.length;
+
+            while (i > 0 || j > 0) {
+                if (i > 0 && j > 0 && chars1[i - 1] === chars2[j - 1]) {
+                    result.unshift({ type: 'same', char: chars1[i - 1] });
+                    i--; j--;
+                } else if (j > 0 && (i === 0 || dp[i][j - 1] >= dp[i - 1][j])) {
+                    result.unshift({ type: 'add', char: chars2[j - 1] });
+                    j--;
+                } else {
+                    result.unshift({ type: 'del', char: chars1[i - 1] });
+                    i--;
+                }
+            }
+            return result;
+        }
+
+        // Render inline diff for a modified line
+        function renderInlineDiff(str1, str2) {
+            const diff = getCharDiff(str1, str2);
+
+            let html1 = '';
+            let html2 = '';
+            let delBuffer = '';
+            let addBuffer = '';
+
+            function flushBuffers() {
+                if (delBuffer) {
+                    html1 += `<span class="highlight-removed">${escapeHtml(delBuffer)}</span>`;
+                    delBuffer = '';
+                }
+                if (addBuffer) {
+                    html2 += `<span class="highlight-added">${escapeHtml(addBuffer)}</span>`;
+                    addBuffer = '';
+                }
+            }
+
+            diff.forEach(d => {
+                if (d.type === 'same') {
+                    flushBuffers();
+                    html1 += escapeHtml(d.char);
+                    html2 += escapeHtml(d.char);
+                } else if (d.type === 'del') {
+                    delBuffer += d.char;
+                } else if (d.type === 'add') {
+                    addBuffer += d.char;
+                }
+            });
+            flushBuffers();
+
+            return { html1, html2 };
+        }
+
+        // Calculate similarity ratio between two strings (0-1)
+        function similarity(str1, str2) {
+            if (!str1 && !str2) return 1;
+            if (!str1 || !str2) return 0;
+
+            const chars1 = str1.split('');
+            const chars2 = str2.split('');
+            const dp = computeLCS(chars1, chars2);
+            const lcsLen = dp[chars1.length][chars2.length];
+            return (2 * lcsLen) / (chars1.length + chars2.length);
+        }
+
+        // Get line-level diff
+        function getLineDiff(lines1, lines2) {
+            const dp = computeLCS(lines1, lines2);
+            const result = [];
+            let i = lines1.length;
+            let j = lines2.length;
+
+            while (i > 0 || j > 0) {
+                if (i > 0 && j > 0 && lines1[i - 1] === lines2[j - 1]) {
+                    result.unshift({ type: 'unchanged', line1: lines1[i - 1], line2: lines2[j - 1] });
+                    i--; j--;
+                } else if (j > 0 && (i === 0 || dp[i][j - 1] >= dp[i - 1][j])) {
+                    result.unshift({ type: 'added', line2: lines2[j - 1] });
+                    j--;
+                } else {
+                    result.unshift({ type: 'removed', line1: lines1[i - 1] });
+                    i--;
+                }
+            }
+            return result;
+        }
+
+        // Post-process diff to detect modified lines (similar removed+added pairs)
+        function detectModifiedLines(diff) {
+            const result = [];
+            let i = 0;
+
+            while (i < diff.length) {
+                const curr = diff[i];
+
+                // Look for removed followed by added (or vice versa) that are similar
+                if (curr.type === 'removed' && i + 1 < diff.length && diff[i + 1].type === 'added') {
+                    const next = diff[i + 1];
+                    if (similarity(curr.line1, next.line2) > 0.4) {
+                        result.push({ type: 'modified', line1: curr.line1, line2: next.line2 });
+                        i += 2;
+                        continue;
+                    }
+                } else if (curr.type === 'added' && i + 1 < diff.length && diff[i + 1].type === 'removed') {
+                    const next = diff[i + 1];
+                    if (similarity(next.line1, curr.line2) > 0.4) {
+                        result.push({ type: 'modified', line1: next.line1, line2: curr.line2 });
+                        i += 2;
+                        continue;
+                    }
+                }
+
+                result.push(curr);
+                i++;
+            }
+            return result;
+        }
+
+        function findDiff() {
+            const text1 = document.getElementById('text1').value;
+            const text2 = document.getElementById('text2').value;
+
+            const lines1 = text1.split('\n');
+            const lines2 = text2.split('\n');
+
+            const rawDiff = getLineDiff(lines1, lines2);
+            const diff = detectModifiedLines(rawDiff);
+
+            let removals = 0;
+            let additions = 0;
+            let html1 = '';
+            let html2 = '';
+            let lineNum1 = 0;
+            let lineNum2 = 0;
+
+            diff.forEach(d => {
+                if (d.type === 'unchanged') {
+                    lineNum1++;
+                    lineNum2++;
+                    html1 += `<div class="diff-line line-unchanged">
+                        <span class="line-number">${lineNum1}</span>
+                        <span class="line-content">${escapeHtml(d.line1)}</span>
+                    </div>`;
+                    html2 += `<div class="diff-line line-unchanged">
+                        <span class="line-number">${lineNum2}</span>
+                        <span class="line-content">${escapeHtml(d.line2)}</span>
+                    </div>`;
+                } else if (d.type === 'modified') {
+                    lineNum1++;
+                    lineNum2++;
+                    additions++;
+                    const inline = renderInlineDiff(d.line1, d.line2);
+                    html1 += `<div class="diff-line line-unchanged">
+                        <span class="line-number">${lineNum1}</span>
+                        <span class="line-content">${inline.html1}</span>
+                    </div>`;
+                    html2 += `<div class="diff-line line-unchanged">
+                        <span class="line-number">${lineNum2}</span>
+                        <span class="line-content">${inline.html2}</span>
+                    </div>`;
+                } else if (d.type === 'removed') {
+                    lineNum1++;
+                    removals++;
+                    html1 += `<div class="diff-line line-removed">
+                        <span class="line-number">${lineNum1}</span>
+                        <span class="line-content">${escapeHtml(d.line1)}</span>
+                    </div>`;
+                    html2 += `<div class="diff-line">
+                        <span class="line-number"></span>
+                        <span class="line-content"></span>
+                    </div>`;
+                } else if (d.type === 'added') {
+                    lineNum2++;
+                    additions++;
+                    html1 += `<div class="diff-line">
+                        <span class="line-number"></span>
+                        <span class="line-content"></span>
+                    </div>`;
+                    html2 += `<div class="diff-line line-added">
+                        <span class="line-number">${lineNum2}</span>
+                        <span class="line-content">${escapeHtml(d.line2)}</span>
+                    </div>`;
+                }
+            });
+
+            document.getElementById('diff1').innerHTML = html1 || '<div class="empty-state">No content</div>';
+            document.getElementById('diff2').innerHTML = html2 || '<div class="empty-state">No content</div>';
+            document.getElementById('removedCount').textContent = removals;
+            document.getElementById('addedCount').textContent = additions;
+            document.getElementById('stats').style.display = 'flex';
+            document.getElementById('diffSection').style.display = 'grid';
+
+            // Sync scroll
+            const diff1El = document.getElementById('diff1');
+            const diff2El = document.getElementById('diff2');
+            diff1El.onscroll = () => { diff2El.scrollTop = diff1El.scrollTop; };
+            diff2El.onscroll = () => { diff1El.scrollTop = diff2El.scrollTop; };
+        }
+
+        function clearAll() {
+            document.getElementById('text1').value = '';
+            document.getElementById('text2').value = '';
+            document.getElementById('diff1').innerHTML = '';
+            document.getElementById('diff2').innerHTML = '';
+            document.getElementById('stats').style.display = 'none';
+            document.getElementById('diffSection').style.display = 'none';
+        }
+
+        function swapTexts() {
+            const text1 = document.getElementById('text1');
+            const text2 = document.getElementById('text2');
+            const temp = text1.value;
+            text1.value = text2.value;
+            text2.value = temp;
+        }
+
+        document.addEventListener('keydown', (e) => {
+            if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+                findDiff();
+            }
+        });
+    </script>
+</body>
+</html>
