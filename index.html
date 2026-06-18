@@ -21,6 +21,14 @@
             // Keep the system theme if storage is unavailable.
         }
     </script>
+    <script>
+        window.DIFF_TOOL_ANALYTICS = {
+            projectToken: "phc_z5emDekjS4HtajRjMNt79PH48qNb6y86FZ8FP4SBsqqz",
+            apiHost: "https://us.i.posthog.com",
+            assetHost: "https://us-assets.i.posthog.com",
+            allowedHostnames: ["katooling.github.io"],
+        };
+    </script>
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -28,7 +36,7 @@
         <header class="title-block">
             <div>
                 <h1>Diff Tool</h1>
-                <p class="subtle">Compare text side by side in your browser.</p>
+                <p class="subtle">Compare text side by side in your browser. Text stays on this device.</p>
             </div>
             <div class="buttons" aria-label="Diff actions">
                 <button id="installBtn" class="install-button" type="button" aria-label="Install app" hidden>Install</button>

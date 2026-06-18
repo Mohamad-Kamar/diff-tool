@@ -12,6 +12,26 @@ const pwaState = {
     installed: false,
 };
 
+const appState = {
+    appEvents: [],
+    lastDiffSummary: null,
+    lastNormalizedFormat: null,
+};
+
+const analyticsState = {
+    mode: 'disabled',
+    enabled: false,
+    initialized: false,
+    events: [],
+    lastError: null,
+};
+
+const debugParams = typeof globalThis.location !== 'undefined' ? new URLSearchParams(globalThis.location.search) : new URLSearchParams();
+const APP_EVENT_LIMIT = 100;
+const ANALYTICS_DEBUG_EVENT_LIMIT = 50;
+const ANALYTICS_EVENT_VERSION = 1;
+const ANALYTICS_LOCAL_HOSTNAMES = new Set(['localhost', '127.0.0.1', '::1', '']);
+
 function escapeHtml(text) {
     const div = document.createElement('div');
     div.textContent = text;
@@ -140,6 +160,8 @@ function normalizeAndDiff() {
     }
 
     hideNormalizeButton();
+    appState.lastNormalizedFormat = format;
+    recordAppEvent('normalize-run', { format });
     findDiff();
 }
 
@@ -392,6 +414,22 @@ function findDiff() {
 
     // Generate summary
     const summary = classifyDiff(additions, removals, modified, unchanged, totalLines);
+    const diffSummary = {
+        classification: summary.classification,
+        detail: summary.detail,
+        additions,
+        removals,
+        modified,
+        unchanged,
+        totalLines,
+        changedLines,
+        percentChanged,
+        originalCharCount: text1.length,
+        changedCharCount: text2.length,
+        originalFormat: detectFormat(text1),
+        changedFormat: detectFormat(text2),
+    };
+    appState.lastDiffSummary = diffSummary;
 
     // Update DOM
     document.getElementById('diff1').innerHTML = html1 || '<div class="empty-state">No content</div>';
@@ -412,6 +450,8 @@ function findDiff() {
     const diff2El = document.getElementById('diff2');
     diff1El.onscroll = () => { diff2El.scrollTop = diff1El.scrollTop; };
     diff2El.onscroll = () => { diff1El.scrollTop = diff2El.scrollTop; };
+
+    recordAppEvent('diff-run', diffSummary);
 }
 
 function clearAll() {
@@ -423,6 +463,8 @@ function clearAll() {
     hideElement(document.getElementById('summary'));
     hideElement(document.getElementById('diffSection'));
     hideNormalizeButton();
+    appState.lastDiffSummary = null;
+    recordAppEvent('clear-click');
 }
 
 function swapTexts() {
@@ -431,6 +473,10 @@ function swapTexts() {
     const temp = text1.value;
     text1.value = text2.value;
     text2.value = temp;
+    recordAppEvent('swap-click', {
+        originalCharBucket: bucketNumber(text2.value.length, [100, 1000, 10000]),
+        changedCharBucket: bucketNumber(text1.value.length, [100, 1000, 10000]),
+    });
 }
 
 function initTheme() {
@@ -461,6 +507,7 @@ function onThemeToggleClick() {
     themeState.storedTheme = nextTheme;
     writeStoredTheme(nextTheme);
     applyEffectiveTheme();
+    recordAppEvent('theme-change', getThemeDebugState());
 }
 
 function applyEffectiveTheme() {
@@ -510,9 +557,305 @@ function getThemeDebugState() {
     };
 }
 
+function initAnalytics() {
+    const config = getAnalyticsConfig();
+    const mode = resolveAnalyticsMode(config);
+    analyticsState.mode = mode;
+    analyticsState.enabled = mode === 'live' || mode === 'stub';
+    analyticsState.initialized = false;
+    analyticsState.events = [];
+    analyticsState.lastError = null;
+
+    if (mode !== 'live') {
+        analyticsState.initialized = mode === 'stub';
+        return;
+    }
+
+    try {
+        installPostHogSnippet(config.assetHost);
+        globalThis.posthog.init(config.projectToken, {
+            api_host: config.apiHost,
+            autocapture: false,
+            capture_pageview: false,
+            capture_pageleave: false,
+            capture_dead_clicks: false,
+            disable_session_recording: true,
+            disable_surveys: true,
+            advanced_disable_flags: true,
+            person_profiles: 'identified_only',
+            persistence: 'memory',
+            property_denylist: [
+                'text',
+                'content',
+                'input',
+                'original',
+                'changed',
+                'name',
+                'file',
+                'filename',
+                'path',
+                'message',
+                'error',
+            ],
+            loaded: () => {
+                analyticsState.initialized = true;
+            },
+        });
+    } catch (error) {
+        analyticsState.enabled = false;
+        analyticsState.mode = 'disabled';
+        analyticsState.lastError = error instanceof Error ? error.message : String(error || 'Analytics failed to initialize.');
+    }
+}
+
+function getAnalyticsConfig() {
+    const raw = typeof globalThis !== 'undefined' ? globalThis.DIFF_TOOL_ANALYTICS || {} : {};
+    return {
+        projectToken: typeof raw.projectToken === 'string' ? raw.projectToken.trim() : '',
+        apiHost: typeof raw.apiHost === 'string' && raw.apiHost.trim() ? raw.apiHost.trim() : 'https://us.i.posthog.com',
+        assetHost: typeof raw.assetHost === 'string' && raw.assetHost.trim() ? raw.assetHost.trim() : 'https://us-assets.i.posthog.com',
+        allowedHostnames: Array.isArray(raw.allowedHostnames)
+            ? raw.allowedHostnames.map((host) => String(host || '').trim().toLowerCase()).filter(Boolean)
+            : [],
+    };
+}
+
+function resolveAnalyticsMode(config) {
+    const override = debugParams.get('analytics');
+    if (override === 'off') {
+        return 'disabled';
+    }
+    if (override === 'stub') {
+        return 'stub';
+    }
+    if (!config.projectToken) {
+        return 'disabled';
+    }
+    if (override === 'live') {
+        return 'live';
+    }
+    const hostname = getAnalyticsHostname();
+    if (!hostname || ANALYTICS_LOCAL_HOSTNAMES.has(hostname)) {
+        return 'disabled';
+    }
+    return config.allowedHostnames.includes(hostname) ? 'live' : 'disabled';
+}
+
+function getAnalyticsHostname() {
+    try {
+        return String(globalThis.location?.hostname || '').toLowerCase();
+    } catch (error) {
+        return '';
+    }
+}
+
+function installPostHogSnippet(assetHost) {
+    if (globalThis.posthog?.__SV) {
+        return;
+    }
+    const documentRef = globalThis.document;
+    if (!documentRef) {
+        throw new Error('PostHog requires a browser document.');
+    }
+
+    (function loadPostHog(doc, posthog) {
+        let script;
+        let firstScript;
+        if (posthog.__SV) {
+            return;
+        }
+        globalThis.posthog = posthog;
+        posthog._i = [];
+        posthog.init = function initQueuedPostHog(token, options, name) {
+            function addQueueMethod(target, methodName) {
+                target[methodName] = function queuePostHogCall() {
+                    target.push([methodName].concat(Array.prototype.slice.call(arguments, 0)));
+                };
+            }
+            const target = typeof name !== 'undefined' ? posthog[name] = [] : posthog;
+            target.toString = () => 'posthog (stub)';
+            for (const method of ['capture', 'identify', 'reset', 'register', 'unregister']) {
+                addQueueMethod(target, method);
+            }
+            posthog._i.push([token, options, name]);
+        };
+        posthog.__SV = 1;
+        script = doc.createElement('script');
+        script.type = 'text/javascript';
+        script.async = true;
+        script.crossOrigin = 'anonymous';
+        script.src = `${assetHost.replace(/\/$/, '')}/static/array.js`;
+        firstScript = doc.getElementsByTagName('script')[0];
+        firstScript.parentNode.insertBefore(script, firstScript);
+    }(documentRef, globalThis.posthog || []));
+}
+
+function recordAppEvent(event, properties = {}) {
+    const entry = {
+        event,
+        timestamp: Date.now(),
+        ...properties,
+    };
+    appState.appEvents.push(entry);
+    if (appState.appEvents.length > APP_EVENT_LIMIT) {
+        appState.appEvents.splice(0, appState.appEvents.length - APP_EVENT_LIMIT);
+    }
+    captureAnalyticsEvent(entry);
+}
+
+function captureAnalyticsEvent(appEvent) {
+    if (!analyticsState.enabled || !appEvent) {
+        return;
+    }
+    const analyticsEvent = buildAnalyticsEvent(appEvent);
+    if (!analyticsEvent) {
+        return;
+    }
+
+    analyticsState.events.push({
+        event: analyticsEvent.event,
+        properties: { ...analyticsEvent.properties },
+    });
+    if (analyticsState.events.length > ANALYTICS_DEBUG_EVENT_LIMIT) {
+        analyticsState.events.splice(0, analyticsState.events.length - ANALYTICS_DEBUG_EVENT_LIMIT);
+    }
+
+    if (analyticsState.mode !== 'live') {
+        return;
+    }
+    try {
+        globalThis.posthog?.capture?.(analyticsEvent.event, analyticsEvent.properties);
+    } catch (error) {
+        analyticsState.lastError = error instanceof Error ? error.message : String(error || 'Analytics capture failed.');
+    }
+}
+
+function buildAnalyticsEvent(entry) {
+    const common = {
+        event_version: ANALYTICS_EVENT_VERSION,
+        app: 'diff_tool',
+        theme: themeState.effectiveTheme,
+        standalone: isStandaloneDisplay(),
+    };
+
+    if (entry.event === 'page-load') {
+        return {
+            event: 'dt_app_view',
+            properties: {
+                ...common,
+                service_worker_controlled: Boolean(navigator.serviceWorker?.controller),
+            },
+        };
+    }
+
+    if (entry.event === 'diff-run') {
+        return {
+            event: 'dt_diff_run',
+            properties: {
+                ...common,
+                classification: normalizeAnalyticsText(entry.classification),
+                changed_percent_bucket: bucketNumber(entry.percentChanged, [1, 10, 30, 60]),
+                total_line_bucket: bucketNumber(entry.totalLines, [10, 100, 1000, 10000]),
+                changed_line_bucket: bucketNumber(entry.changedLines, [1, 10, 100, 1000]),
+                original_char_bucket: bucketNumber(entry.originalCharCount, [100, 1000, 10000, 100000]),
+                changed_char_bucket: bucketNumber(entry.changedCharCount, [100, 1000, 10000, 100000]),
+                original_format: normalizeAnalyticsText(entry.originalFormat),
+                changed_format: normalizeAnalyticsText(entry.changedFormat),
+            },
+        };
+    }
+
+    if (entry.event === 'normalize-run') {
+        return {
+            event: 'dt_normalize_run',
+            properties: {
+                ...common,
+                format: normalizeAnalyticsText(entry.format),
+            },
+        };
+    }
+
+    if (entry.event === 'swap-click') {
+        return {
+            event: 'dt_swap_click',
+            properties: {
+                ...common,
+                original_char_bucket: normalizeAnalyticsText(entry.originalCharBucket),
+                changed_char_bucket: normalizeAnalyticsText(entry.changedCharBucket),
+            },
+        };
+    }
+
+    if (entry.event === 'clear-click') {
+        return {
+            event: 'dt_clear_click',
+            properties: common,
+        };
+    }
+
+    if (entry.event === 'theme-change') {
+        return {
+            event: 'dt_theme_change',
+            properties: {
+                ...common,
+                mode: normalizeAnalyticsText(entry.mode),
+                effective_theme: normalizeAnalyticsText(entry.effectiveTheme),
+            },
+        };
+    }
+
+    if (entry.event === 'install-click') {
+        return {
+            event: 'dt_install_click',
+            properties: common,
+        };
+    }
+
+    return null;
+}
+
+function bucketNumber(value, thresholds) {
+    const number = Number(value);
+    if (!Number.isFinite(number) || number < 0) {
+        return 'unknown';
+    }
+    for (const threshold of thresholds) {
+        if (number <= threshold) {
+            return `lte_${threshold}`;
+        }
+    }
+    return `gt_${thresholds[thresholds.length - 1]}`;
+}
+
+function normalizeAnalyticsText(value) {
+    return String(value || 'unknown')
+        .trim()
+        .toLowerCase()
+        .replace(/[^a-z0-9_.-]+/g, '_')
+        .slice(0, 64) || 'unknown';
+}
+
+function getAnalyticsDebugState() {
+    return {
+        mode: analyticsState.mode,
+        enabled: analyticsState.enabled,
+        initialized: analyticsState.initialized,
+        eventCount: analyticsState.events.length,
+        lastError: analyticsState.lastError,
+    };
+}
+
 function exposeDebugHelpers() {
     window.__diffToolDebug = {
         getThemeState: () => getThemeDebugState(),
+        getAnalyticsState: () => getAnalyticsDebugState(),
+        getAnalyticsEvents: () => analyticsState.events.map((entry) => ({
+            event: entry.event,
+            properties: { ...entry.properties },
+        })),
+        getAppEvents: () => appState.appEvents.map((entry) => ({ ...entry })),
+        getLastDiffSummary: () => (appState.lastDiffSummary ? { ...appState.lastDiffSummary } : null),
+        getLastNormalizedFormat: () => appState.lastNormalizedFormat,
         getPwaState: () => ({
             serviceWorkerControlled: Boolean(navigator.serviceWorker?.controller),
             standalone: isStandaloneDisplay(),
@@ -569,6 +912,7 @@ async function onInstallClick() {
     const promptEvent = pwaState.installPromptEvent;
     pwaState.installPromptEvent = null;
     updateInstallButton();
+    recordAppEvent('install-click');
 
     try {
         await promptEvent.prompt();
@@ -611,6 +955,8 @@ function bindEvents() {
 }
 
 initTheme();
+initAnalytics();
 initPwa();
 exposeDebugHelpers();
 bindEvents();
+recordAppEvent('page-load');
