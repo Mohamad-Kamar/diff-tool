@@ -631,9 +631,6 @@ function resolveAnalyticsMode(config) {
     if (!config.projectToken) {
         return 'disabled';
     }
-    if (override === 'live') {
-        return 'live';
-    }
     const hostname = getAnalyticsHostname();
     if (!hostname || ANALYTICS_LOCAL_HOSTNAMES.has(hostname)) {
         return 'disabled';

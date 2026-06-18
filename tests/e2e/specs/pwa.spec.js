@@ -5,12 +5,30 @@ async function openApp(page) {
 }
 
 async function waitForServiceWorkerControl(page) {
-    await page.waitForFunction(() => Boolean(navigator.serviceWorker?.ready), null, { timeout: 15000 });
+    await page.waitForFunction(async () => {
+        if (!navigator.serviceWorker) {
+            return false;
+        }
+        await navigator.serviceWorker.ready;
+        return true;
+    }, null, { timeout: 15000 });
+
     const controlled = await page.evaluate(() => Boolean(navigator.serviceWorker?.controller));
     if (!controlled) {
         await page.reload();
     }
-    await page.waitForFunction(() => Boolean(navigator.serviceWorker?.controller), null, { timeout: 15000 });
+    await page.waitForFunction(async () => {
+        if (!navigator.serviceWorker) {
+            return false;
+        }
+        if (navigator.serviceWorker.controller) {
+            return true;
+        }
+        await new Promise((resolve) => {
+            navigator.serviceWorker.addEventListener("controllerchange", resolve, { once: true });
+        });
+        return Boolean(navigator.serviceWorker.controller);
+    }, null, { timeout: 15000 });
 }
 
 test("web app manifest exposes installable PWA metadata", async ({ page }) => {

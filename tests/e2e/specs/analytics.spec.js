@@ -92,14 +92,14 @@ test("analytics stub records normalization and theme changes without raw content
     expectNoAnalyticsLeak(events, ["secretName", "alpha"]);
 });
 
-test("diffing still works when live analytics is blocked", async ({ page }) => {
+test("live analytics override does not bypass the local host allowlist", async ({ page }) => {
     await page.route(/posthog|array\.js/i, (route) => route.abort("failed"));
     await openApp(page, "/?analytics=live");
 
     const analytics = await page.evaluate(() => window.__diffToolDebug.getAnalyticsState());
     expect(analytics).toMatchObject({
-        mode: "live",
-        enabled: true,
+        mode: "disabled",
+        enabled: false,
     });
 
     await page.locator("#text1").fill("one\ntwo");

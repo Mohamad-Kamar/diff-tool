@@ -134,6 +134,7 @@ Coverage includes:
 - System theme, persisted theme toggle, and accessible theme button state.
 - PWA manifest, icons, service worker cache, offline reload, and install prompt state.
 - Analytics disabled/stub/live-blocked behavior and privacy leakage checks.
+- Desktop and mobile visual smoke checks with screenshot artifacts in the Playwright report.
 
 ## CI
 
