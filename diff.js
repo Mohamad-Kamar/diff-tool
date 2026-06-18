@@ -103,6 +103,14 @@ function hideNormalizeButton() {
     document.getElementById('normalizeSection').classList.remove('visible');
 }
 
+function showElement(element) {
+    element.hidden = false;
+}
+
+function hideElement(element) {
+    element.hidden = true;
+}
+
 // Normalize both inputs and run diff
 function normalizeAndDiff() {
     const text1 = document.getElementById('text1').value;
@@ -381,9 +389,9 @@ function findDiff() {
     document.getElementById('percentChanged').textContent = percentChanged;
     document.getElementById('summaryClassification').textContent = summary.classification;
     document.getElementById('summaryDetail').textContent = summary.detail;
-    document.getElementById('summary').style.display = 'block';
-    document.getElementById('stats').style.display = 'flex';
-    document.getElementById('diffSection').style.display = 'grid';
+    showElement(document.getElementById('summary'));
+    showElement(document.getElementById('stats'));
+    showElement(document.getElementById('diffSection'));
 
     // Sync scroll
     const diff1El = document.getElementById('diff1');
@@ -397,9 +405,9 @@ function clearAll() {
     document.getElementById('text2').value = '';
     document.getElementById('diff1').innerHTML = '';
     document.getElementById('diff2').innerHTML = '';
-    document.getElementById('stats').style.display = 'none';
-    document.getElementById('summary').style.display = 'none';
-    document.getElementById('diffSection').style.display = 'none';
+    hideElement(document.getElementById('stats'));
+    hideElement(document.getElementById('summary'));
+    hideElement(document.getElementById('diffSection'));
     hideNormalizeButton();
 }
 
@@ -411,12 +419,20 @@ function swapTexts() {
     text2.value = temp;
 }
 
-// Event listeners
-document.addEventListener('keydown', (e) => {
-    if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
-        findDiff();
-    }
-});
+function bindEvents() {
+    document.getElementById('findDiffBtn').addEventListener('click', findDiff);
+    document.getElementById('clearBtn').addEventListener('click', clearAll);
+    document.getElementById('swapBtn').addEventListener('click', swapTexts);
+    document.getElementById('normalizeBtn').addEventListener('click', normalizeAndDiff);
 
-document.getElementById('text1').addEventListener('input', checkForStructuredData);
-document.getElementById('text2').addEventListener('input', checkForStructuredData);
+    document.addEventListener('keydown', (e) => {
+        if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+            findDiff();
+        }
+    });
+
+    document.getElementById('text1').addEventListener('input', checkForStructuredData);
+    document.getElementById('text2').addEventListener('input', checkForStructuredData);
+}
+
+bindEvents();

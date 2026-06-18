@@ -1,0 +1,17 @@
+{
+  "name": "diff-tool",
+  "version": "1.0.0",
+  "description": "Static client-only browser diff tool.",
+  "private": true,
+  "scripts": {
+    "test:e2e": "playwright test",
+    "test:e2e:core": "playwright test --workers=1",
+    "test:e2e:headed": "playwright test --headed",
+    "test:e2e:debug": "playwright test --debug",
+    "test:e2e:report": "playwright show-report",
+    "test:e2e:agent": "bash ./tools/testing/playwright-agent-workflow.sh"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.58.2"
+  }
+}

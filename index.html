@@ -3,390 +3,85 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title> Diff Tool</title>
-    <style>
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
-
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: #f5f5f7;
-            min-height: 100vh;
-            padding: 20px;
-        }
-
-        .container {
-            max-width: 1400px;
-            margin: 0 auto;
-        }
-
-        header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-        }
-
-        h1 {
-            font-size: 24px;
-            font-weight: 600;
-            color: #1d1d1f;
-        }
-
-        .buttons {
-            display: flex;
-            gap: 10px;
-        }
-
-        button {
-            padding: 8px 16px;
-            border: none;
-            border-radius: 6px;
-            font-size: 14px;
-            font-weight: 500;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-
-        .btn-primary {
-            background: #007aff;
-            color: white;
-        }
-
-        .btn-primary:hover {
-            background: #0056b3;
-        }
-
-        .btn-secondary {
-            background: #e5e5e7;
-            color: #1d1d1f;
-        }
-
-        .btn-secondary:hover {
-            background: #d1d1d6;
-        }
-
-        .input-section {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 20px;
-            margin-bottom: 20px;
-        }
-
-        .input-panel {
-            background: white;
-            border-radius: 12px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-            overflow: hidden;
-        }
-
-        .panel-header {
-            padding: 12px 16px;
-            background: #fafafa;
-            border-bottom: 1px solid #e5e5e7;
-            font-weight: 500;
-            color: #1d1d1f;
-        }
-
-        textarea {
-            width: 100%;
-            height: 200px;
-            border: none;
-            padding: 16px;
-            font-family: 'SF Mono', Monaco, 'Courier New', monospace;
-            font-size: 13px;
-            line-height: 1.5;
-            resize: vertical;
-            outline: none;
-        }
-
-        textarea:focus {
-            background: #fafafa;
-        }
-
-        .stats {
-            display: flex;
-            gap: 20px;
-            margin-bottom: 20px;
-            padding: 12px 16px;
-            background: white;
-            border-radius: 8px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-        }
-
-        .stat {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            font-size: 14px;
-        }
-
-        .stat-removed {
-            color: #d73a49;
-        }
-
-        .stat-added {
-            color: #22863a;
-        }
-
-        .stat-unchanged {
-            color: #6a737d;
-        }
-
-        .stat-modified {
-            color: #e36209;
-        }
-
-        .stat-separator {
-            color: #d1d5da;
-            margin: 0 4px;
-        }
-
-        .summary {
-            margin-bottom: 20px;
-            padding: 16px 20px;
-            background: white;
-            border-radius: 8px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-            display: none;
-        }
-
-        .summary-classification {
-            font-size: 16px;
-            font-weight: 600;
-            color: #1d1d1f;
-            margin-bottom: 4px;
-        }
-
-        .summary-detail {
-            font-size: 14px;
-            color: #6a737d;
-        }
-
-        .diff-section {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 20px;
-        }
-
-        .diff-panel {
-            background: white;
-            border-radius: 12px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-            overflow: hidden;
-        }
-
-        .diff-header {
-            padding: 12px 16px;
-            background: #fafafa;
-            border-bottom: 1px solid #e5e5e7;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .diff-title {
-            font-weight: 500;
-            color: #1d1d1f;
-        }
-
-        .diff-content {
-            padding: 0;
-            font-family: 'SF Mono', Monaco, 'Courier New', monospace;
-            font-size: 13px;
-            line-height: 1.6;
-            max-height: 500px;
-            overflow: auto;
-        }
-
-        .diff-line {
-            display: flex;
-            padding: 2px 0;
-        }
-
-        .line-number {
-            min-width: 40px;
-            padding: 0 8px;
-            text-align: right;
-            color: #8e8e93;
-            background: #fafafa;
-            border-right: 1px solid #e5e5e7;
-            user-select: none;
-        }
-
-        .line-content {
-            padding: 0 12px;
-            white-space: pre-wrap;
-            word-break: break-all;
-            flex: 1;
-        }
-
-        .line-removed {
-            background: #ffeef0;
-        }
-
-        .line-removed .line-content {
-            color: #d73a49;
-        }
-
-        .line-added {
-            background: #e6ffed;
-        }
-
-        .line-added .line-content {
-            color: #22863a;
-        }
-
-        .line-unchanged {
-            background: white;
-        }
-
-        .highlight-removed {
-            background: #fdb8c0;
-            border-radius: 2px;
-        }
-
-        .highlight-added {
-            background: #acf2bd;
-            border-radius: 2px;
-        }
-
-        .empty-state {
-            padding: 40px;
-            text-align: center;
-            color: #8e8e93;
-        }
-
-        .normalize-section {
-            display: none;
-            margin-bottom: 20px;
-            padding: 12px 16px;
-            background: #fff8e6;
-            border: 1px solid #f0d68c;
-            border-radius: 8px;
-            align-items: center;
-            gap: 12px;
-        }
-
-        .normalize-section.visible {
-            display: flex;
-        }
-
-        .normalize-info {
-            flex: 1;
-            font-size: 14px;
-            color: #7a6c3d;
-        }
-
-        .format-badge {
-            display: inline-block;
-            padding: 2px 8px;
-            background: #f0d68c;
-            border-radius: 4px;
-            font-size: 12px;
-            font-weight: 600;
-            color: #7a6c3d;
-            text-transform: uppercase;
-        }
-
-        .btn-normalize {
-            background: #f0d68c;
-            color: #5a5030;
-            border: none;
-            padding: 8px 16px;
-            border-radius: 6px;
-            font-size: 14px;
-            font-weight: 500;
-            cursor: pointer;
-        }
-
-        .btn-normalize:hover {
-            background: #e6c86a;
-        }
-
-        @media (max-width: 800px) {
-            .input-section, .diff-section {
-                grid-template-columns: 1fr;
-            }
-        }
-    </style>
+    <title>Diff Tool</title>
+    <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-    <div class="container">
-        <header>
-            <h1>Diff Tool</h1>
-            <div class="buttons">
-                <button class="btn-secondary" onclick="clearAll()">Clear</button>
-                <button class="btn-secondary" onclick="swapTexts()">Swap</button>
-                <button class="btn-primary" onclick="findDiff()">Find Difference</button>
+    <main class="container">
+        <header class="title-block">
+            <div>
+                <h1>Diff Tool</h1>
+                <p class="subtle">Compare text side by side in your browser.</p>
+            </div>
+            <div class="buttons" aria-label="Diff actions">
+                <button id="clearBtn" class="btn btn-secondary" type="button">Clear</button>
+                <button id="swapBtn" class="btn btn-secondary" type="button">Swap</button>
+                <button id="findDiffBtn" class="btn btn-primary" type="button">Find Difference</button>
             </div>
         </header>
 
-        <div class="input-section">
+        <section class="input-section" aria-label="Text inputs">
             <div class="input-panel">
-                <div class="panel-header">Original Text</div>
+                <label class="panel-header" for="text1">Original Text</label>
                 <textarea id="text1" placeholder="Paste or type the original text here..."></textarea>
             </div>
             <div class="input-panel">
-                <div class="panel-header">Changed Text</div>
+                <label class="panel-header" for="text2">Changed Text</label>
                 <textarea id="text2" placeholder="Paste or type the changed text here..."></textarea>
             </div>
-        </div>
+        </section>
 
-        <div class="normalize-section" id="normalizeSection">
+        <section class="normalize-section" id="normalizeSection" aria-live="polite">
             <div class="normalize-info">
                 <span class="format-badge" id="formatBadge">JSON</span>
                 Structured data detected. Sort keys before comparing?
             </div>
-            <button class="btn-normalize" onclick="normalizeAndDiff()">Normalize & Compare</button>
-        </div>
+            <button id="normalizeBtn" class="btn-normalize" type="button">Normalize & Compare</button>
+        </section>
 
-        <div class="summary" id="summary">
+        <section class="summary" id="summary" aria-live="polite" hidden>
             <div class="summary-classification" id="summaryClassification"></div>
             <div class="summary-detail" id="summaryDetail"></div>
-        </div>
+        </section>
 
-        <div class="stats" id="stats" style="display: none;">
+        <section class="stats" id="stats" aria-label="Diff statistics" hidden>
             <div class="stat stat-removed">
-                <span>−</span>
+                <span aria-hidden="true">-</span>
                 <span id="removedCount">0</span> removed
             </div>
             <div class="stat stat-added">
-                <span>+</span>
+                <span aria-hidden="true">+</span>
                 <span id="addedCount">0</span> added
             </div>
             <div class="stat stat-modified">
-                <span>~</span>
+                <span aria-hidden="true">~</span>
                 <span id="modifiedCount">0</span> modified
             </div>
-            <span class="stat-separator">|</span>
+            <span class="stat-separator" aria-hidden="true">|</span>
             <div class="stat stat-unchanged">
                 <span id="unchangedCount">0</span> unchanged
             </div>
-            <span class="stat-separator">|</span>
+            <span class="stat-separator" aria-hidden="true">|</span>
             <div class="stat">
                 <span id="percentChanged">0</span>% changed
             </div>
-        </div>
+        </section>
 
-        <div class="diff-section" id="diffSection" style="display: none;">
+        <section class="diff-section" id="diffSection" aria-label="Diff output" hidden>
             <div class="diff-panel">
                 <div class="diff-header">
                     <span class="diff-title">Original</span>
                 </div>
-                <div class="diff-content" id="diff1"></div>
+                <div class="diff-content" id="diff1" tabindex="0"></div>
             </div>
             <div class="diff-panel">
                 <div class="diff-header">
                     <span class="diff-title">Changed</span>
                 </div>
-                <div class="diff-content" id="diff2"></div>
+                <div class="diff-content" id="diff2" tabindex="0"></div>
             </div>
-        </div>
-    </div>
+        </section>
+    </main>
 
     <script src="diff.js"></script>
 </body>
