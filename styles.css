@@ -9,7 +9,7 @@
 }
 
 :root {
-    color-scheme: light;
+    color-scheme: light dark;
     --bg: #f5f5f7;
     --panel: #ffffff;
     --panel-soft: #fafafa;
@@ -37,6 +37,68 @@
     --radius-lg: 12px;
     --radius-md: 8px;
     --radius-sm: 6px;
+}
+
+:root[data-theme="light"] {
+    color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+        color-scheme: dark;
+        --bg: #1a1a1c;
+        --panel: #242427;
+        --panel-soft: #202024;
+        --text: #f5f5f7;
+        --muted: #a1a1a6;
+        --border: #3a3a3d;
+        --primary: #0a84ff;
+        --primary-hover: #3094ff;
+        --secondary: #343438;
+        --secondary-hover: #44444a;
+        --removed-bg: #3b1518;
+        --removed-text: #fca5a5;
+        --removed-highlight: #7f1d1d;
+        --added-bg: #10331f;
+        --added-text: #86efac;
+        --added-highlight: #14532d;
+        --modified-text: #fdba74;
+        --normalize-bg: #392b12;
+        --normalize-border: #6d531f;
+        --normalize-text: #f8d48a;
+        --normalize-button: #6d531f;
+        --normalize-button-hover: #846426;
+        --shadow: 0 2px 12px rgba(0, 0, 0, 0.34);
+        --focus-ring: rgba(10, 132, 255, 0.42);
+    }
+}
+
+:root[data-theme="dark"] {
+    color-scheme: dark;
+    --bg: #1a1a1c;
+    --panel: #242427;
+    --panel-soft: #202024;
+    --text: #f5f5f7;
+    --muted: #a1a1a6;
+    --border: #3a3a3d;
+    --primary: #0a84ff;
+    --primary-hover: #3094ff;
+    --secondary: #343438;
+    --secondary-hover: #44444a;
+    --removed-bg: #3b1518;
+    --removed-text: #fca5a5;
+    --removed-highlight: #7f1d1d;
+    --added-bg: #10331f;
+    --added-text: #86efac;
+    --added-highlight: #14532d;
+    --modified-text: #fdba74;
+    --normalize-bg: #392b12;
+    --normalize-border: #6d531f;
+    --normalize-text: #f8d48a;
+    --normalize-button: #6d531f;
+    --normalize-button-hover: #846426;
+    --shadow: 0 2px 12px rgba(0, 0, 0, 0.34);
+    --focus-ring: rgba(10, 132, 255, 0.42);
 }
 
 body {
@@ -126,6 +188,23 @@ h1 {
 
 .btn-secondary:hover {
     background: var(--secondary-hover);
+}
+
+.theme-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 38px;
+    min-height: 36px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--panel);
+    color: var(--text);
+    font-size: 15px;
+}
+
+.theme-toggle:hover {
+    background: var(--panel-soft);
 }
 
 .input-section {

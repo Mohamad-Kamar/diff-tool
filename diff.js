@@ -1,3 +1,12 @@
+const THEME_STORAGE_KEY = 'dt-theme';
+const THEME_DARK_QUERY = '(prefers-color-scheme: dark)';
+
+const themeState = {
+    mediaQuery: null,
+    storedTheme: null,
+    effectiveTheme: 'light',
+};
+
 function escapeHtml(text) {
     const div = document.createElement('div');
     div.textContent = text;
@@ -419,6 +428,89 @@ function swapTexts() {
     text2.value = temp;
 }
 
+function initTheme() {
+    themeState.mediaQuery = typeof window !== 'undefined' && typeof window.matchMedia === 'function'
+        ? window.matchMedia(THEME_DARK_QUERY)
+        : null;
+    themeState.storedTheme = readStoredTheme();
+    applyEffectiveTheme();
+
+    document.getElementById('themeToggle').addEventListener('click', onThemeToggleClick);
+
+    if (themeState.mediaQuery) {
+        const onChange = () => {
+            if (!themeState.storedTheme) {
+                applyEffectiveTheme();
+            }
+        };
+        if (typeof themeState.mediaQuery.addEventListener === 'function') {
+            themeState.mediaQuery.addEventListener('change', onChange);
+        } else if (typeof themeState.mediaQuery.addListener === 'function') {
+            themeState.mediaQuery.addListener(onChange);
+        }
+    }
+}
+
+function onThemeToggleClick() {
+    const nextTheme = themeState.effectiveTheme === 'dark' ? 'light' : 'dark';
+    themeState.storedTheme = nextTheme;
+    writeStoredTheme(nextTheme);
+    applyEffectiveTheme();
+}
+
+function applyEffectiveTheme() {
+    themeState.effectiveTheme = resolveEffectiveTheme();
+    document.documentElement.dataset.theme = themeState.effectiveTheme;
+    updateThemeToggle();
+}
+
+function resolveEffectiveTheme() {
+    if (themeState.storedTheme === 'light' || themeState.storedTheme === 'dark') {
+        return themeState.storedTheme;
+    }
+    return themeState.mediaQuery?.matches ? 'dark' : 'light';
+}
+
+function updateThemeToggle() {
+    const toggle = document.getElementById('themeToggle');
+    const isDark = themeState.effectiveTheme === 'dark';
+    toggle.textContent = isDark ? '☀️' : '🌙';
+    toggle.setAttribute('aria-pressed', String(isDark));
+    toggle.setAttribute('aria-label', isDark ? 'Switch to light mode' : 'Switch to dark mode');
+}
+
+function readStoredTheme() {
+    try {
+        const stored = localStorage.getItem(THEME_STORAGE_KEY);
+        return stored === 'light' || stored === 'dark' ? stored : null;
+    } catch (error) {
+        return null;
+    }
+}
+
+function writeStoredTheme(theme) {
+    try {
+        localStorage.setItem(THEME_STORAGE_KEY, theme);
+    } catch (error) {
+        // The applied theme still works for this page when storage is unavailable.
+    }
+}
+
+function getThemeDebugState() {
+    return {
+        mode: themeState.storedTheme || 'system',
+        effectiveTheme: themeState.effectiveTheme,
+        storedTheme: themeState.storedTheme,
+        systemTheme: themeState.mediaQuery?.matches ? 'dark' : 'light',
+    };
+}
+
+function exposeDebugHelpers() {
+    window.__diffToolDebug = {
+        getThemeState: () => getThemeDebugState(),
+    };
+}
+
 function bindEvents() {
     document.getElementById('findDiffBtn').addEventListener('click', findDiff);
     document.getElementById('clearBtn').addEventListener('click', clearAll);
@@ -435,4 +527,6 @@ function bindEvents() {
     document.getElementById('text2').addEventListener('input', checkForStructuredData);
 }
 
+initTheme();
+exposeDebugHelpers();
 bindEvents();
