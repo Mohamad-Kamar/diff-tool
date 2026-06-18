@@ -23,6 +23,16 @@ test("runs a side-by-side diff and shows summary stats", async ({ page }) => {
     await expect(page.locator("#diff1")).toContainText("beta");
     await expect(page.locator("#diff2")).toContainText("bravo");
     await expect(page.locator("#diff2")).toContainText("delta");
+
+    const debugSummary = await page.evaluate(() => window.__diffToolDebug.getLastDiffSummary());
+    expect(debugSummary).toMatchObject({
+        additions: 1,
+        modified: 1,
+        removals: 0,
+        unchanged: 2,
+        originalFormat: "text",
+        changedFormat: "text",
+    });
 });
 
 test("keyboard shortcut runs the diff", async ({ page }) => {
