@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Diff Tool icon">
+    <rect width="512" height="512" rx="96" fill="#007aff"/>
+    <rect x="94" y="108" width="324" height="296" rx="28" fill="#ffffff"/>
+    <path d="M160 188h90" stroke="#d73a49" stroke-width="28" stroke-linecap="round"/>
+    <path d="M160 256h190" stroke="#22863a" stroke-width="28" stroke-linecap="round"/>
+    <path d="M160 324h126" stroke="#007aff" stroke-width="28" stroke-linecap="round"/>
+    <path d="M110 188h18" stroke="#d73a49" stroke-width="28" stroke-linecap="round"/>
+    <path d="M110 256h18" stroke="#22863a" stroke-width="28" stroke-linecap="round"/>
+    <path d="M110 324h18" stroke="#007aff" stroke-width="28" stroke-linecap="round"/>
+</svg>

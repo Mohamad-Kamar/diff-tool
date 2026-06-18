@@ -5,6 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Diff Tool</title>
     <meta name="theme-color" content="#007aff">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="Diff Tool">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <link rel="manifest" href="manifest.webmanifest">
+    <link rel="icon" type="image/png" sizes="192x192" href="assets/icons/icon-192.png">
+    <link rel="apple-touch-icon" href="assets/icons/icon-192.png">
     <script>
         try {
             const theme = localStorage.getItem("dt-theme");
@@ -25,6 +31,7 @@
                 <p class="subtle">Compare text side by side in your browser.</p>
             </div>
             <div class="buttons" aria-label="Diff actions">
+                <button id="installBtn" class="install-button" type="button" aria-label="Install app" hidden>Install</button>
                 <button id="themeToggle" class="theme-toggle" type="button" aria-label="Toggle dark mode" aria-pressed="false">🌙</button>
                 <button id="clearBtn" class="btn btn-secondary" type="button">Clear</button>
                 <button id="swapBtn" class="btn btn-secondary" type="button">Swap</button>

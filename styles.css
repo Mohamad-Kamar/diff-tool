@@ -190,7 +190,8 @@ h1 {
     background: var(--secondary-hover);
 }
 
-.theme-toggle {
+.theme-toggle,
+.install-button {
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -203,7 +204,14 @@ h1 {
     font-size: 15px;
 }
 
-.theme-toggle:hover {
+.install-button {
+    padding: 0 14px;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.theme-toggle:hover,
+.install-button:hover {
     background: var(--panel-soft);
 }
 

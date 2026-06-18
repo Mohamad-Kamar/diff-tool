@@ -7,6 +7,11 @@ const themeState = {
     effectiveTheme: 'light',
 };
 
+const pwaState = {
+    installPromptEvent: null,
+    installed: false,
+};
+
 function escapeHtml(text) {
     const div = document.createElement('div');
     div.textContent = text;
@@ -508,7 +513,84 @@ function getThemeDebugState() {
 function exposeDebugHelpers() {
     window.__diffToolDebug = {
         getThemeState: () => getThemeDebugState(),
+        getPwaState: () => ({
+            serviceWorkerControlled: Boolean(navigator.serviceWorker?.controller),
+            standalone: isStandaloneDisplay(),
+            installPromptAvailable: Boolean(pwaState.installPromptEvent),
+            installed: pwaState.installed,
+        }),
     };
+}
+
+function initPwa() {
+    if (typeof window === 'undefined') {
+        return;
+    }
+
+    window.addEventListener('beforeinstallprompt', (event) => {
+        event.preventDefault();
+        pwaState.installPromptEvent = event;
+        updateInstallButton();
+    });
+
+    window.addEventListener('appinstalled', () => {
+        pwaState.installed = true;
+        pwaState.installPromptEvent = null;
+        updateInstallButton();
+    });
+
+    const displayModeQuery = typeof window.matchMedia === 'function'
+        ? window.matchMedia('(display-mode: standalone)')
+        : null;
+    displayModeQuery?.addEventListener?.('change', updateInstallButton);
+    updateInstallButton();
+    registerServiceWorker();
+}
+
+function isStandaloneDisplay() {
+    const standaloneMode = typeof window !== 'undefined'
+        && typeof window.matchMedia === 'function'
+        && window.matchMedia('(display-mode: standalone)').matches;
+    const iosStandalone = Boolean(globalThis.navigator?.standalone);
+    return standaloneMode || iosStandalone;
+}
+
+function updateInstallButton() {
+    const installBtn = document.getElementById('installBtn');
+    installBtn.hidden = !pwaState.installPromptEvent || isStandaloneDisplay() || pwaState.installed;
+}
+
+async function onInstallClick() {
+    if (!pwaState.installPromptEvent) {
+        updateInstallButton();
+        return;
+    }
+
+    const promptEvent = pwaState.installPromptEvent;
+    pwaState.installPromptEvent = null;
+    updateInstallButton();
+
+    try {
+        await promptEvent.prompt();
+        const choice = await promptEvent.userChoice;
+        if (choice?.outcome !== 'accepted') {
+            pwaState.installPromptEvent = promptEvent;
+        }
+    } catch (error) {
+        pwaState.installPromptEvent = promptEvent;
+    }
+
+    updateInstallButton();
+}
+
+function registerServiceWorker() {
+    if (!('serviceWorker' in navigator) || !window.isSecureContext) {
+        return;
+    }
+
+    navigator.serviceWorker.register('service-worker.js').catch(() => {
+        // Offline install is a progressive enhancement; the diff tool still works.
+    });
 }
 
 function bindEvents() {
@@ -516,6 +598,7 @@ function bindEvents() {
     document.getElementById('clearBtn').addEventListener('click', clearAll);
     document.getElementById('swapBtn').addEventListener('click', swapTexts);
     document.getElementById('normalizeBtn').addEventListener('click', normalizeAndDiff);
+    document.getElementById('installBtn').addEventListener('click', onInstallClick);
 
     document.addEventListener('keydown', (e) => {
         if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
@@ -528,5 +611,6 @@ function bindEvents() {
 }
 
 initTheme();
+initPwa();
 exposeDebugHelpers();
 bindEvents();
